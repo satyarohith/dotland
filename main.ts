@@ -13,7 +13,7 @@ import { Fragment, h } from "preact";
 import { serve } from "$std/http/server.ts";
 import { router } from "$router";
 import { lookupSymbol } from "./util/doc_utils.ts";
-import { withLog } from "./util/ga_utils.ts";
+import { withCache, withLog } from "./util/ga_utils.ts";
 import { setup } from "$doc_components/services.ts";
 
 import manifest from "./fresh.gen.ts";
@@ -48,8 +48,10 @@ await setup({
 });
 
 const ctx = await ServerContext.fromManifest(manifest, options);
-
+const cache = await caches.open("v1");
 const innerHandler = withLog(ctx.handler());
-const handler = router(completionsV2Routes, innerHandler);
+const innerHandlerWithCache = withCache(cache, innerHandler);
+
+const handler = router(completionsV2Routes, innerHandlerWithCache);
 
 serve(handler);

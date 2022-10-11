@@ -211,3 +211,25 @@ export function withLog(
     return res;
   };
 }
+
+export function withCache(
+  cache: Cache,
+  handler: (
+    request: Request,
+    connInfo: ConnInfo,
+  ) => Response | Promise<Response>,
+): (request: Request, connInfo: ConnInfo) => Promise<Response> {
+  return async (req, con) => {
+    const cacheMatch = await cache.match(req);
+    if (cacheMatch) {
+      cacheMatch.headers.set("x-cache-hit", "true");
+      return cacheMatch;
+    } else {
+      const res = await handler(req, con);
+      if (res.ok) {
+        await cache.put(req, res.clone());
+      }
+      return res;
+    }
+  };
+}
